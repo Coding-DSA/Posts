@@ -1,0 +1,43 @@
+name: Daily File Release
+
+# Schedule the action to run daily at midnight UTC
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Adjust the cron to your preferred time
+
+jobs:
+  release-file:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout the public repository (this one)
+      - name: Checkout Public Repository
+        uses: actions/checkout@v2
+
+      # Step 2: Clone the private repository (specify the main branch)
+      - name: Clone Private Repository
+        uses: actions/checkout@v2
+        with:
+          repository: Coding-DSA/LIPosts  # Replace with your private repo
+          ref: main  # The branch you're using in the private repo
+          token: ${{ secrets.PRIVATE_REPO_ACCESS_TOKEN }}
+
+      # Step 3: Move one file from the private repo to the public repo
+      - name: Move One File
+        run: |
+          files=(*)  # Replace 'private/*' with your folder if needed
+          if [ ${#files[@]} -gt 0 ]; then
+            mv ${files[0]} ./
+            git add $(basename ${files[0]})
+          else
+            echo "No more files to release"
+            exit 1
+          fi
+
+      # Step 4: Commit and push the file to the public repository
+      - name: Commit and Push File
+        run: |
+          git config user.name "GitHub Action"
+          git config user.email "action@github.com"
+          git commit -m "Released $(basename ${files[0]})"
+          git push origin main
